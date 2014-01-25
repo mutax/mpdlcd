@@ -30,7 +30,14 @@ class MPDClient(utils.AutoRetryCandidate):
         super(MPDClient, self).__init__(*args, **kwargs)
         self._client = mpd.MPDClient()
         self._connected = False
-        self.host = host
+        p=host.find('@')
+        if p>=0:
+            self.password = host[:p]
+            self.host = host[p+1:]
+            logger.debug(u'mpd url contained a password: %s',self.password)
+        else:
+            self.password = None
+            self.host = host
         self.port = port
 
     def _decode_text(self, text):
@@ -47,6 +54,10 @@ class MPDClient(utils.AutoRetryCandidate):
         if not self._connected:
             logger.info(u'Connecting to MPD server at %s:%s', self.host, self.port)
             self._client.connect(host=self.host, port=self.port)
+            if self.password:
+                # try to send the password, will throw an Exception if none is needed
+                logger.debug(u'sending password: %s',self.password)
+                self._client.password(self.password)
             self._connected = True
 
     @property
